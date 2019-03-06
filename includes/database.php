@@ -11,9 +11,14 @@ require_once("config.php");
 class MySQLDatabase {
 
     private $connection;
+    public $last_query;
+    private $magic_quotes_active;
+    private $real_escape_string_exists;
 
     public function __construct() {
         $this->open_connection();
+        $this->magic_quotes_active = get_magic_quotes_gpc();
+        $this ->real_escape_string_exists = function_exists("mysqli_real_escape_string"); //i.e. PHP >= v4.3.0
     }
 
     public function open_connection() {
@@ -36,23 +41,22 @@ class MySQLDatabase {
     }
 
     public function query($sql) {
+        $this->last_query = $sql;
         $result = mysqli_query($this->connection, $sql);
         $this->confirm_query($result);
         return $result;
     }
 
     public function escape_value ($value) {
-        $magic_quotes_active = get_magic_quotes_gpc();
-        $new_enough_php = function_exists("mysqli_real_escape_string"); //i.e. PHP >= v4.3.0
-        if($new_enough_php) { //PHP v4.3.0 or higher
+        if($this->real_escape_string_exists) { //PHP v4.3.0 or higher
             // undo any magic quote effects so mysqli_real_escape_string can do the work
-            if($magic_quotes_active) {
+            if($this->magic_quotes_active) {
                 $value = stripslashes($value);
             }
             $value = mysqli_real_escape_string($this->connection, $value);
         } else { // before PHP v4.3.0
             //if magic quotes aren't already an the add slashes manually
-            if(!$magic_quotes_active) {
+            if(!$this->magic_quotes_active) {
                 $value = addslashes($value);
             }
             //if magic quotes are active then the slashes already exist
@@ -80,7 +84,9 @@ class MySQLDatabase {
 
     private function confirm_query($result) {
         if(!$result){
-            die("DATABASE QUERY FAILED:".mysqli_error($this->connection));
+            $output = "DATABASE QUERY FAILED:".mysqli_error($this->connection)."<br /><br />";
+            $output .= "Last SQL query: ".$this->last_query;
+            die($output);
         }
     }
 }
