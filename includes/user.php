@@ -44,10 +44,12 @@ class User {
     }
 
     private static function instantiate($record) {
-        // Could check that $record exits and is an array
-        // Simple, long-form approach:
+
         $object = new self();
-//
+
+    // Could check that $record exits and is an array
+    // Simple, long-form approach:
+
 //        $object->id = $record['id'];
 //        $object->username = $record['username'];
 //        $object->first_name = $record['first_name'];
